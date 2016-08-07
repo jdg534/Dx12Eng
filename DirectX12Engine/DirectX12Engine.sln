@@ -5,6 +5,8 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectX12Engine", "DirectX12Engine\DirectX12Engine.vcxproj", "{DCC38842-D4CA-47E6-B269-8E01A384967B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendererUnitTests", "RendererUnitTests\RendererUnitTests.vcxproj", "{9B1ADEA3-BDF6-4BD7-B4E9-FC3650F0BFDE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -15,6 +17,10 @@ Global
 		{DCC38842-D4CA-47E6-B269-8E01A384967B}.Debug|Win32.Build.0 = Debug|Win32
 		{DCC38842-D4CA-47E6-B269-8E01A384967B}.Release|Win32.ActiveCfg = Release|Win32
 		{DCC38842-D4CA-47E6-B269-8E01A384967B}.Release|Win32.Build.0 = Release|Win32
+		{9B1ADEA3-BDF6-4BD7-B4E9-FC3650F0BFDE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9B1ADEA3-BDF6-4BD7-B4E9-FC3650F0BFDE}.Debug|Win32.Build.0 = Debug|Win32
+		{9B1ADEA3-BDF6-4BD7-B4E9-FC3650F0BFDE}.Release|Win32.ActiveCfg = Release|Win32
+		{9B1ADEA3-BDF6-4BD7-B4E9-FC3650F0BFDE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
