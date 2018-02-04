@@ -1,0 +1,9 @@
+*.obj
+*.exe
+*.pdb
+*.aps
+*.opensdf
+*.tlog
+*.res
+
+DirectX12Engine/ipch

@@ -7,6 +7,8 @@
 #include <string>
 #include <cfloat>
 
+#include "resource.h"
+
 class ApplicationCore
 {
 public:
@@ -25,6 +27,11 @@ private:
 	std::chrono::steady_clock::time_point m_timeAtStartOfTheFrame,
 		m_timeAtEndOfTheFrame;
 	float m_deltaTimeForFrame;
+
+	// Windows hinstance
+	HINSTANCE m_hInst;
+	HWND m_hWnd; // window handle
+
 };
 
 #endif
