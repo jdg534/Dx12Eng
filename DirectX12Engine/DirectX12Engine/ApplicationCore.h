@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 
+
 #include <chrono>
 #include <string>
 #include <cfloat>
@@ -17,13 +18,16 @@ public:
 
 
 	HRESULT init(HINSTANCE hInst, int nCmdValues, const std::string & indexFile);
-
+	int run();
 	void shutdown();
+	
+	
+
+private:
 
 	void update();
 	void draw();
 
-private:
 	std::chrono::steady_clock::time_point m_timeAtStartOfTheFrame,
 		m_timeAtEndOfTheFrame;
 	float m_deltaTimeForFrame;
@@ -31,6 +35,10 @@ private:
 	// Windows hinstance
 	HINSTANCE m_hInst;
 	HWND m_hWnd; // window handle
+
+	// Dx12 structs
+		
+
 
 };
 

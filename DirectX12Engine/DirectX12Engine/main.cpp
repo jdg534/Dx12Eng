@@ -15,26 +15,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLn, int nCmd
 		return -1;
 	}
 
-	MSG windowsMessage = {0};
-
-	while (windowsMessage.message != WM_QUIT)
-	{
-		if (PeekMessage(&windowsMessage, NULL, 0,0, PM_REMOVE))
-		{
-			bool messageProcessed = false;
-
-			// logic for processing win32 user input
-			// if needed
-		}
-		else
-		{
-			applicationCore->update();
-			applicationCore->draw();
-		}
-	}
+	int runResults = applicationCore->run();
 
 	applicationCore->shutdown();
 	delete applicationCore;
 	applicationCore = nullptr;
-	return (int)windowsMessage.wParam;
+	return runResults;
 }

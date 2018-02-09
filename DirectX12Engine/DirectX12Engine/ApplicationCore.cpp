@@ -79,6 +79,40 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 	// return E_FAIL;
 }
 
+int ApplicationCore::run()
+{
+	MSG windowsMessage = { 0 };
+
+	while (windowsMessage.message != WM_QUIT)
+	{
+		if (PeekMessage(&windowsMessage, NULL, 0, 0, PM_REMOVE))
+		{
+			bool messageProcessed = false;
+
+			// logic for processing win32 user input
+			// if needed
+			if (windowsMessage.message == WM_QUIT)
+			{
+				messageProcessed = true;
+				break;
+			}
+
+			if (!messageProcessed)
+			{
+				TranslateMessage(&windowsMessage);
+				DispatchMessage(&windowsMessage);
+			}
+		}
+		else
+		{
+			update();
+			draw();
+		}
+	}
+
+	return static_cast<int>(windowsMessage.wParam);
+}
+
 void ApplicationCore::shutdown()
 {
 
