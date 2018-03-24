@@ -1,3 +1,4 @@
+# visual studio generated files
 *.obj
 *.exe
 *.pdb
@@ -5,5 +6,15 @@
 *.opensdf
 *.tlog
 *.res
+*.sdf
+*.suo
+*.ilk
+*.idb
+*.vcxproj.user
 
-DirectX12Engine/ipch
+# visual studio generated folders
+DirectX12Engine/ipch/*
+DirectX12Engine/.vs/*
+DirectX12Engine/ipch/*
+DirectX12Engine/Debug/*
+DirectX12Engine/Release/*
