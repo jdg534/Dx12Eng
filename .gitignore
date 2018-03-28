@@ -18,3 +18,5 @@ DirectX12Engine/.vs/*
 DirectX12Engine/ipch/*
 DirectX12Engine/Debug/*
 DirectX12Engine/Release/*
+DirectX12Engine/DirectX12Engine/x64/
+DirectX12Engine/RendererUnitTests/x64/
