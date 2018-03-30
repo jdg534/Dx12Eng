@@ -16,4 +16,4 @@ LANGUAGE 9, 1
 #pragma code_page(1252)
 #endif
 
-DEFUALT_ICON ICON "FreeLinkNonComercial.ico"
+CHAIN_ICON ICON "FreeLinkNonComercial.ico"

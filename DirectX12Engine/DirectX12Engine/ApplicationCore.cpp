@@ -61,12 +61,25 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 	winClassEx.cbClsExtra = 0;
 	winClassEx.cbWndExtra = 0;
 	winClassEx.hInstance = hInst;
-	winClassEx.hIcon = LoadIcon(hInst, IDI_APPLICATION); // replace this with the chain from the .rc file
+	
+	HICON iconForWindow = NULL;
+		
+	iconForWindow = LoadIcon(hInst, "FreeLinkNonComercial.ico");
+
+	if (!iconForWindow)
+	{
+		iconForWindow = LoadIconA(hInst, MAKEINTRESOURCEA(CHAIN_ICON));
+	}
+	
+	winClassEx.hIcon = iconForWindow;
+	
 	winClassEx.hCursor = LoadCursor(NULL, IDC_ARROW);
 	winClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	winClassEx.lpszMenuName = nullptr;
 	winClassEx.lpszClassName = s_c_windowClassString;
-	winClassEx.hIconSm = LoadIcon(winClassEx.hInstance, (LPCTSTR)IDI_APPLICATION); // replace this with the chain from the .rc file
+	
+	winClassEx.hIconSm = iconForWindow;
+	
 	if (!RegisterClassEx(&winClassEx))
 		return E_FAIL;
 
