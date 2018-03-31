@@ -1,11 +1,26 @@
 #include "ApplicationCore.h"
 
 #include <d3d12.h>
+#include <d3dcompiler.h>
 #include "d3dx12.h" // taken from sample code
 #include <dxgi1_6.h>
 
+#include <DirectXMath.h>
+
 // put this string somewhere else
 const char * s_c_windowClassString = "Dx12EngWindowClass\0";
+
+struct Vertex
+{
+	DirectX::XMFLOAT3 pos;
+	DirectX::XMFLOAT4 colour;
+	Vertex(DirectX::XMFLOAT3 & IN_pos, DirectX::XMFLOAT4 & IN_colour)
+		: pos(IN_pos)
+		, colour(IN_colour)
+	{		
+
+	}
+};
 
 LRESULT CALLBACK WindowCallBackFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -97,6 +112,9 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	// start of stuff to put in initDirectx() 
 
+	// viewport and sicssor rect might not need to be defined after the window, both show be moved into the renderer class on refactor
+	m_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, 800.0f, 600.0f); // might need to define the depth and draw dist
+	m_scissorRect = CD3DX12_RECT(0, 0, 800, 600);
 
 	UINT dxgiFactoryFlags = 0;
 #if defined(_DEBUG)
@@ -197,7 +215,11 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
 	
+	m_aspectRatio = (float) swapChainDesc.Width / (float) swapChainDesc.Height;
 
+
+	
+	// assuming this struct would get used to create a projection matrix
 
 	directxInitResults = factory->CreateSwapChainForHwnd(
 		m_dx12CommandQueue.Get(),		// Swap chain needs the queue so that it can force a flush on it.
@@ -271,10 +293,188 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 	// end of stuff to put in initiDirectX()
 
 
-	// PICK UP HERE!
 	// get a simple rotating triangle on screen
 
+	// start of code to put in initRenderer()
+	// the additional scope is just to follow the sample
+	// create root siganture
+	{
+		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc;
+		ZeroMemory(&rootSigDesc, sizeof(CD3DX12_ROOT_SIGNATURE_DESC));
 
+		rootSigDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+		Microsoft::WRL::ComPtr<ID3DBlob> sig;
+		Microsoft::WRL::ComPtr<ID3DBlob> err;
+
+		directxInitResults = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &sig, &err);
+
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to create root signature", "D3D12SerializeRootSignature() failed", MB_OK);
+			return E_FAIL;
+		}
+
+		directxInitResults = m_dx12Device->CreateRootSignature(0, sig->GetBufferPointer(), sig->GetBufferSize(), IID_PPV_ARGS(&m_dx12RootSig));
+
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to create root signature", "m_dx12Device->CreateRootSignature() failed", MB_OK);
+			return E_FAIL;
+		}
+	}
+
+	// initialise the input assembler and associated shader
+	{
+		Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
+		Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
+
+#ifdef _DEBUG
+		UINT shaderCompileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+		UNIT shaderCompileFlags = 0;
+#endif
+
+		directxInitResults = D3DCompileFromFile(L"DefaultShader.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", shaderCompileFlags, 0, &vsBlob, nullptr);
+
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to compile Vertex Shader", "Failed to compile Vertex Shader", MB_OK);
+			return E_FAIL;
+		}
+
+		directxInitResults = D3DCompileFromFile(L"DefaultShader.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", shaderCompileFlags, 0, &psBlob, nullptr);
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to compile pixel Shader", "Failed to compile pixel Shader", MB_OK);
+			return E_FAIL;
+		}
+
+		D3D12_INPUT_ELEMENT_DESC inputElementDesc [] =
+		{
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		};
+
+		// Describe and create the graphics pipeline state object (PSO).
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+		psoDesc.InputLayout = { inputElementDesc, _countof(inputElementDesc) };
+		psoDesc.pRootSignature = m_dx12RootSig.Get();
+		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vsBlob.Get());
+		psoDesc.PS = CD3DX12_SHADER_BYTECODE(psBlob.Get());
+		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		psoDesc.DepthStencilState.DepthEnable = FALSE;
+		psoDesc.DepthStencilState.StencilEnable = FALSE;
+		psoDesc.SampleMask = UINT_MAX;
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		psoDesc.NumRenderTargets = 1;
+		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		psoDesc.SampleDesc.Count = 1;
+
+		directxInitResults = m_dx12Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState));
+
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to create pipeline stage", "m_dx12Device->CreateGraphicsPipelineState() failed", MB_OK);
+			return E_FAIL;
+		}
+	}
+
+	directxInitResults = m_dx12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_dx12CmdAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList));
+
+	if (FAILED(directxInitResults))
+	{
+		MessageBoxA(m_hWnd, "Failed to create command list", "m_dx12Device->CreateCommandList() failed", MB_OK);
+		return E_FAIL;
+	}
+
+	directxInitResults = m_commandList->Close();
+	if (FAILED(directxInitResults))
+	{
+		MessageBoxA(m_hWnd, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
+		return E_FAIL;
+	}
+
+	{
+		// Define the geometry for a triangle.
+		Vertex triangleVertices[] =
+		{
+			Vertex(DirectX::XMFLOAT3( 0.0f, 0.25f * m_aspectRatio, 0.0f ),DirectX::XMFLOAT4( 1.0f, 0.0f, 0.0f, 1.0f )),
+			Vertex(DirectX::XMFLOAT3(0.25f, -0.25f * m_aspectRatio, 0.0f ),DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f )),
+			Vertex(DirectX::XMFLOAT3(-0.25f, -0.25f * m_aspectRatio, 0.0f ),DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f ))
+		};
+
+		const UINT vertexBufferSize = sizeof(triangleVertices);
+
+		// 
+		directxInitResults=  m_dx12Device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&m_vertexBuffer));
+
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
+			return E_FAIL;
+		}
+
+		// Copy the triangle data to the vertex buffer.
+		UINT8* pVertexDataBegin;
+		CD3DX12_RANGE readRange(0, 0);		// We do not intend to read from this resource on the CPU.
+
+		directxInitResults = m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin));
+
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
+			return E_FAIL;
+		}
+
+		// populate the vertex buffer via the mapping
+		memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+		
+		// remove the mapping as the copy has taken place
+		m_vertexBuffer->Unmap(0, nullptr);
+
+		// Initialize the vertex buffer view.
+		m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+		m_vertexBufferView.StrideInBytes = sizeof(Vertex);
+		m_vertexBufferView.SizeInBytes = vertexBufferSize;
+	}
+
+	// Create synchronization objects and wait until assets have been uploaded to the GPU.
+	{
+		// taken from Dx12 sample
+
+		directxInitResults = m_dx12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+		if (FAILED(directxInitResults))
+		{
+			MessageBoxA(m_hWnd, "Failed to create fence", "m_dx12Device->CreateFence() failed", MB_OK);
+			return E_FAIL;
+		}
+		
+		m_fenceValue = 1;
+
+		// Create an event handle to use for frame synchronization.
+		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+		if (m_fenceEvent == nullptr)
+		{
+			 directxInitResults = HRESULT_FROM_WIN32(GetLastError());
+
+			 MessageBoxA(m_hWnd, "Failed to create fence event handle", "CreateEvent() return nullptr", MB_OK);
+			 return E_FAIL;
+		}
+
+		// Wait for the command list to execute; we are reusing the same command 
+		// due to following sample code only need to deal with one command list.
+		waitForLastFrame();
+	}
+
+	// end of code to put in initRenderer()
 
 	return S_OK; // next just get a rotating triangle on screen (need to create a Dx12 context first)
 }
@@ -315,7 +515,37 @@ int ApplicationCore::run()
 
 void ApplicationCore::shutdown()
 {
+	waitForLastFrame();
 
+	// free / release / delete all Dx12 structs
+	CloseHandle(m_fenceEvent);
+
+	/* (is addition to the code in the sample) free:
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
+	Microsoft::WRL::ComPtr<IDXGIAdapter> m_dxDeviceAdapter;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_dx12RootSig;
+	Microsoft::WRL::ComPtr<ID3D12Device> m_dx12Device;
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_dx12CommandQueue;
+	Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_renderTargetviewDescHeap;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[2];
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_dx12CmdAllocator;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
+	*/
+
+	m_vertexBuffer.~ComPtr(); // this should free any associated resorces
+	m_dxDeviceAdapter.~ComPtr();
+	m_dx12RootSig.~ComPtr();
+	m_dx12Device.~ComPtr();
+	m_dx12CommandQueue.~ComPtr();
+	m_swapChain.~ComPtr();
+	m_renderTargetviewDescHeap.~ComPtr();
+	m_renderTargets[0].~ComPtr();
+	m_renderTargets[1].~ComPtr();
+	m_dx12CmdAllocator.~ComPtr();
+	m_pipelineState.~ComPtr();
+	m_commandList.~ComPtr();
 }
 
 void ApplicationCore::update()
@@ -325,6 +555,105 @@ void ApplicationCore::update()
 
 void ApplicationCore::draw()
 {
+	// initial code from the sample
 
+	populateDxCmdList();
+
+	ID3D12CommandList* ppCmdLists[] = { m_commandList.Get() };
+
+	// array of size 1, can have multiple command lists?
+	m_dx12CommandQueue->ExecuteCommandLists(1, ppCmdLists);
+
+
+	// present the frame
+	if (FAILED(m_swapChain->Present(1, 0)))
+	{
+		throw "m_swapChain->present() failed";
+	}
+
+	waitForLastFrame();
 }
 
+void ApplicationCore::waitForLastFrame()
+{
+	// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
+	// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
+	// sample illustrates how to use fences for efficient resource usage and to
+	// maximize GPU utilization.
+
+	// Signal and increment the fence value.
+	const UINT64 fence = m_fenceValue;
+	HRESULT signalResult = m_dx12CommandQueue->Signal(m_fence.Get(), fence);
+
+	if (FAILED(signalResult))
+	{
+		throw "m_dx12CommandQueue->Signal() failed";
+	}
+
+	m_fenceValue++;
+
+	// Wait until the previous frame is finished.
+	if (m_fence->GetCompletedValue() < fence)
+	{
+		HRESULT setEventOnCompletionRes = m_fence->SetEventOnCompletion(fence, m_fenceEvent);
+		
+		if (FAILED(setEventOnCompletionRes))
+		{
+			throw "m_fence->SetEventOnCompletion() failed";
+		}
+		
+		WaitForSingleObject(m_fenceEvent, INFINITE);
+	}
+
+	m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+}
+
+void ApplicationCore::populateDxCmdList()
+{
+	// clear the command allocator
+	HRESULT hRes = m_dx12CmdAllocator->Reset();
+
+	if (FAILED(hRes))
+	{
+		throw "m_dx12CmdAllocator->Reset failed";
+	}
+
+	// reset the command list for repopulation
+	hRes = m_commandList->Reset(m_dx12CmdAllocator.Get(), m_pipelineState.Get());
+
+	if (FAILED(hRes))
+	{
+		throw "Failed to reset the command list!";
+	}
+
+
+
+	// set the state
+	m_commandList->SetGraphicsRootSignature(m_dx12RootSig.Get());
+	m_commandList->RSSetViewports(1, &m_viewport);
+	m_commandList->RSSetScissorRects(1, &m_scissorRect);
+
+	// inform that the current render target is the back buffer
+	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_renderTargetviewDescHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+	m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+	// start defining commands
+	const float clearClr[] = { 0.0f, 0.4f , 0.2f ,1.0f};
+	m_commandList->ClearRenderTargetView(rtvHandle, clearClr, 0, nullptr);
+	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	m_commandList->DrawInstanced(3, 1, 0, 0); // just does that contents of the current vertex buffer, once moving to full 3D rendered scene look into creating a index buffer
+
+	// Indicate that the back buffer will now be used to present.
+	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+
+	// close the command list
+	hRes = m_commandList->Close();
+
+	if (FAILED(hRes))
+	{
+		throw "Failed the close the command list";
+	}
+}

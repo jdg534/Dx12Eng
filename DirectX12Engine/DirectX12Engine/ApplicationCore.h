@@ -7,6 +7,9 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
+// include the Dx12 helper header
+#include "d3dx12.h"
+
 #include <chrono>
 #include <string>
 #include <cfloat>
@@ -30,6 +33,9 @@ private:
 
 	void update();
 	void draw();
+	void waitForLastFrame();
+	void populateDxCmdList();
+
 
 	std::chrono::steady_clock::time_point m_timeAtStartOfTheFrame,
 		m_timeAtEndOfTheFrame;
@@ -48,6 +54,10 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_renderTargetviewDescHeap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[2];
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_dx12CmdAllocator;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
+	CD3DX12_VIEWPORT m_viewport;
+	CD3DX12_RECT m_scissorRect;
 
 	UINT m_rtvDescriptorSize;
 
@@ -59,6 +69,10 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	UINT64 m_fenceValue;
 
+	float m_aspectRatio;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
+	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
 	// tempory code, figure out a good way to replace this
 	static inline void GetHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter)
