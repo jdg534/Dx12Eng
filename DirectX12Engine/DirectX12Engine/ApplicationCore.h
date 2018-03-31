@@ -16,6 +16,8 @@
 
 #include "resource.h"
 
+#include "Win32Window.h"
+
 class ApplicationCore
 {
 public:
@@ -41,9 +43,7 @@ private:
 		m_timeAtEndOfTheFrame;
 	float m_deltaTimeForFrame;
 
-	// Windows hinstance
-	HINSTANCE m_hInst;
-	HWND m_hWnd; // window handle
+	Win32Window * m_windowPtr;
 
 	// Dx12 structs
 	Microsoft::WRL::ComPtr<IDXGIAdapter> m_dxDeviceAdapter;

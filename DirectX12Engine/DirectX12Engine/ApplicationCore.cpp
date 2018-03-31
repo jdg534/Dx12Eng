@@ -7,9 +7,6 @@
 
 #include <DirectXMath.h>
 
-// put this string somewhere else
-const char * s_c_windowClassString = "Dx12EngWindowClass\0";
-
 struct Vertex
 {
 	DirectX::XMFLOAT3 pos;
@@ -53,6 +50,7 @@ ApplicationCore::ApplicationCore()
 	, m_dx12CommandQueue(nullptr)
 	, m_swapChain(nullptr)
 	, m_renderTargetviewDescHeap(nullptr)
+	, m_windowPtr(nullptr)
 {
 	m_useWarpDevice = false;
 }
@@ -66,49 +64,14 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 {
 	// create Win32 window
 
-	WNDCLASSEX winClassEx;
-	ZeroMemory(&winClassEx, sizeof(WNDCLASSEX));
+	m_windowPtr = new Win32Window(800, 600, "Dx12 Engine");
 
-	winClassEx.cbSize = sizeof(WNDCLASSEX);
-
-	winClassEx.style = CS_HREDRAW | CS_VREDRAW;
-	winClassEx.lpfnWndProc = WindowCallBackFunc;
-	winClassEx.cbClsExtra = 0;
-	winClassEx.cbWndExtra = 0;
-	winClassEx.hInstance = hInst;
-	
-	HICON iconForWindow = NULL;
-		
-	iconForWindow = LoadIcon(hInst, "FreeLinkNonComercial.ico");
-
-	if (!iconForWindow)
+	if (FAILED(m_windowPtr->createWindow(hInst, WindowCallBackFunc, nCmdValues)))
 	{
-		iconForWindow = LoadIconA(hInst, MAKEINTRESOURCEA(CHAIN_ICON));
-	}
-	
-	winClassEx.hIcon = iconForWindow;
-	
-	winClassEx.hCursor = LoadCursor(NULL, IDC_ARROW);
-	winClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	winClassEx.lpszMenuName = nullptr;
-	winClassEx.lpszClassName = s_c_windowClassString;
-	
-	winClassEx.hIconSm = iconForWindow;
-	
-	if (!RegisterClassEx(&winClassEx))
 		return E_FAIL;
+	} 
 
-	// Create window
-	m_hInst = hInst;
-	RECT WindowRect = { 0, 0, 800, 600};
-	AdjustWindowRect(&WindowRect, WS_OVERLAPPEDWINDOW, FALSE);
-	m_hWnd = CreateWindow(s_c_windowClassString, "Dx12 Engine Window\0", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, WindowRect.right - WindowRect.left, WindowRect.bottom - WindowRect.top, nullptr, nullptr, m_hInst,
-		nullptr);
-	if (!m_hWnd)
-		return E_FAIL;
-
-	ShowWindow(m_hWnd, nCmdValues);
+	const HWND windowHandle = m_windowPtr->getWindowHandle();
 
 	// start of stuff to put in initDirectx() 
 
@@ -139,7 +102,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	if (FAILED(directxInitResults))
 	{
-		MessageBoxA(m_hWnd, "CreateDXGIFactory2() failed", "CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)); failed", MB_OK);
+		MessageBoxA(windowHandle, "CreateDXGIFactory2() failed", "CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)); failed", MB_OK);
 		return E_FAIL;
 	}
 
@@ -151,7 +114,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "factory->EnumWarpAdapter() failed", "factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter); failed", MB_OK);
+			MessageBoxA(windowHandle, "factory->EnumWarpAdapter() failed", "factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter); failed", MB_OK);
 			return E_FAIL;
 		}
 
@@ -163,7 +126,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "D3D12CreateDevice() failed", "D3D_FEATURE_LEVEL_11_0 with WARP failed", MB_OK);
+			MessageBoxA(windowHandle, "D3D12CreateDevice() failed", "D3D_FEATURE_LEVEL_11_0 with WARP failed", MB_OK);
 			return E_FAIL;
 		}
 	}
@@ -181,7 +144,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "D3D12CreateDevice() failed", "D3D_FEATURE_LEVEL_11_0 with hardware failed", MB_OK);
+			MessageBoxA(windowHandle, "D3D12CreateDevice() failed", "D3D_FEATURE_LEVEL_11_0 with hardware failed", MB_OK);
 			return E_FAIL;
 		}
 	}
@@ -196,7 +159,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	if (FAILED(directxInitResults))
 	{
-		MessageBoxA(m_hWnd, "Failed to create command queue", "CreateCommandQueue() failed", MB_OK);
+		MessageBoxA(windowHandle, "Failed to create command queue", "CreateCommandQueue() failed", MB_OK);
 		return E_FAIL;
 	}
 
@@ -223,7 +186,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	directxInitResults = factory->CreateSwapChainForHwnd(
 		m_dx12CommandQueue.Get(),		// Swap chain needs the queue so that it can force a flush on it.
-		m_hWnd,
+		windowHandle,
 		&swapChainDesc,
 		nullptr,
 		nullptr,
@@ -232,7 +195,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	if (FAILED(directxInitResults))
 	{
-		MessageBoxA(m_hWnd, "Swap chain creation failed", "CreateSwapChainForHwnd() failed", MB_OK);
+		MessageBoxA(windowHandle, "Swap chain creation failed", "CreateSwapChainForHwnd() failed", MB_OK);
 		return E_FAIL;
 	}
 
@@ -241,7 +204,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	if (FAILED(directxInitResults))
 	{
-		MessageBoxA(m_hWnd, "Swap chain creation failed", "swapChain.As(&m_swapChain);", MB_OK);
+		MessageBoxA(windowHandle, "Swap chain creation failed", "swapChain.As(&m_swapChain);", MB_OK);
 		return E_FAIL;
 	}
 
@@ -262,7 +225,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to create heap descriptor", "Failed to create heap descriptor for the render target view", MB_OK);
+			MessageBoxA(windowHandle, "Failed to create heap descriptor", "Failed to create heap descriptor for the render target view", MB_OK);
 			return E_FAIL;
 		}
 
@@ -286,7 +249,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	if (FAILED(directxInitResults))
 	{
-		MessageBoxA(m_hWnd, "Failed to create command allocator", "m_dx12Device->CreateCommandAllocator() failed", MB_OK);
+		MessageBoxA(windowHandle, "Failed to create command allocator", "m_dx12Device->CreateCommandAllocator() failed", MB_OK);
 		return E_FAIL;
 	}
 
@@ -311,7 +274,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to create root signature", "D3D12SerializeRootSignature() failed", MB_OK);
+			MessageBoxA(windowHandle, "Failed to create root signature", "D3D12SerializeRootSignature() failed", MB_OK);
 			return E_FAIL;
 		}
 
@@ -319,7 +282,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to create root signature", "m_dx12Device->CreateRootSignature() failed", MB_OK);
+			MessageBoxA(windowHandle, "Failed to create root signature", "m_dx12Device->CreateRootSignature() failed", MB_OK);
 			return E_FAIL;
 		}
 	}
@@ -339,14 +302,14 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to compile Vertex Shader", "Failed to compile Vertex Shader", MB_OK);
+			MessageBoxA(windowHandle, "Failed to compile Vertex Shader", "Failed to compile Vertex Shader", MB_OK);
 			return E_FAIL;
 		}
 
 		directxInitResults = D3DCompileFromFile(L"DefaultShader.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", shaderCompileFlags, 0, &psBlob, nullptr);
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to compile pixel Shader", "Failed to compile pixel Shader", MB_OK);
+			MessageBoxA(windowHandle, "Failed to compile pixel Shader", "Failed to compile pixel Shader", MB_OK);
 			return E_FAIL;
 		}
 
@@ -376,7 +339,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to create pipeline stage", "m_dx12Device->CreateGraphicsPipelineState() failed", MB_OK);
+			MessageBoxA(windowHandle, "Failed to create pipeline stage", "m_dx12Device->CreateGraphicsPipelineState() failed", MB_OK);
 			return E_FAIL;
 		}
 	}
@@ -385,14 +348,14 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 	if (FAILED(directxInitResults))
 	{
-		MessageBoxA(m_hWnd, "Failed to create command list", "m_dx12Device->CreateCommandList() failed", MB_OK);
+		MessageBoxA(windowHandle, "Failed to create command list", "m_dx12Device->CreateCommandList() failed", MB_OK);
 		return E_FAIL;
 	}
 
 	directxInitResults = m_commandList->Close();
 	if (FAILED(directxInitResults))
 	{
-		MessageBoxA(m_hWnd, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
+		MessageBoxA(windowHandle, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
 		return E_FAIL;
 	}
 
@@ -418,7 +381,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
+			MessageBoxA(windowHandle, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
 			return E_FAIL;
 		}
 
@@ -430,7 +393,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
+			MessageBoxA(windowHandle, "Failed to clear the command list", "m_commandList->Close() failed", MB_OK);
 			return E_FAIL;
 		}
 
@@ -453,7 +416,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 		directxInitResults = m_dx12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
 		if (FAILED(directxInitResults))
 		{
-			MessageBoxA(m_hWnd, "Failed to create fence", "m_dx12Device->CreateFence() failed", MB_OK);
+			MessageBoxA(windowHandle, "Failed to create fence", "m_dx12Device->CreateFence() failed", MB_OK);
 			return E_FAIL;
 		}
 		
@@ -465,7 +428,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 		{
 			 directxInitResults = HRESULT_FROM_WIN32(GetLastError());
 
-			 MessageBoxA(m_hWnd, "Failed to create fence event handle", "CreateEvent() return nullptr", MB_OK);
+			 MessageBoxA(windowHandle, "Failed to create fence event handle", "CreateEvent() return nullptr", MB_OK);
 			 return E_FAIL;
 		}
 
@@ -546,6 +509,10 @@ void ApplicationCore::shutdown()
 	m_dx12CmdAllocator.~ComPtr();
 	m_pipelineState.~ComPtr();
 	m_commandList.~ComPtr();
+
+	m_windowPtr->shutdown();
+
+	delete m_windowPtr;
 }
 
 void ApplicationCore::update()
