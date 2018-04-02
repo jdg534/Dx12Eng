@@ -118,11 +118,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ApplicationCore.cpp" />
+    <ClCompile Include="Dx12Renderer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Win32Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationCore.h" />
+    <ClInclude Include="Dx12Renderer.h" />
+    <ClInclude Include="Geomatry.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Win32Window.h" />
   </ItemGroup>
