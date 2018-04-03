@@ -7,6 +7,11 @@
 
 #include <DirectXMath.h>
 
+#include <assimp/Importer.hpp>      // C++ importer interface
+#include <assimp/scene.h>           // Output data structure
+#include <assimp/postprocess.h>     // Post processing flags
+
+#include <vector>
 
 LRESULT CALLBACK WindowCallBackFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -73,17 +78,52 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 	{
 		HRESULT vertexBufferCreation = E_FAIL;
 
-		// Define the geometry for a triangle.
-		Vertex triangleVertices[] =
+		Assimp::Importer importer;
+
+		const aiScene * testScene = importer.ReadFile("TestCube.obj",
+			//aiProcess_CalcTangentSpace |
+			aiProcess_Triangulate |
+			// aiProcess_JoinIdenticalVertices |
+			aiProcess_SortByPType |
+			aiProcess_GenNormals |
+			// aiProcess_FlipWindingOrder|
+			aiProcess_GenUVCoords |
+			aiProcess_MakeLeftHanded);
+
+		assert(testScene);
+
+		std::vector<Vertex> vertexInput;
+
+		assert(testScene->mNumMeshes == 1);
+
+		vertexInput.resize(testScene->mMeshes[0]->mNumVertices);
+
+		// down scale the vertex data, want it to be visable on screen
+
+		const float scaleVerticesBy = 0.25f;
+
+		for (size_t i = 0; i < testScene->mMeshes[0]->mNumVertices; ++i)
 		{
-			Vertex(DirectX::XMFLOAT3(0.0f, 0.25f * m_aspectRatio, 0.0f),DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)),
-			Vertex(DirectX::XMFLOAT3(0.25f, -0.25f * m_aspectRatio, 0.0f),DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f)),
-			Vertex(DirectX::XMFLOAT3(-0.25f, -0.25f * m_aspectRatio, 0.0f),DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f))
-		};
+			vertexInput[i].m_position.x = testScene->mMeshes[0]->mVertices[i].x * scaleVerticesBy;
+			vertexInput[i].m_position.y = testScene->mMeshes[0]->mVertices[i].y * scaleVerticesBy;
+			vertexInput[i].m_position.z = testScene->mMeshes[0]->mVertices[i].z * scaleVerticesBy;
 
-		m_geomatry.m_numVertices = 3;
+			// assign colour based on i
+			if (i % 3 == 0) // i is a multiple of 3
+			{
+				vertexInput[i].m_colour = DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f); // blue
+			}
+			else if (i % 2 == 0) // i is a multiple of 2
+			{
+				vertexInput[i].m_colour = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f); // green
+			}
+			else
+			{
+				vertexInput[i].m_colour = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f); // red
+			}
+		}
 
-		const UINT vertexBufferSize = sizeof(triangleVertices);
+		const UINT vertexBufferSize = sizeof(Vertex) * testScene->mMeshes[0]->mNumVertices;
 
 		const Microsoft::WRL::ComPtr<ID3D12Device> devicePtr = m_rendererPtr->getDevicePtr();
 		
@@ -114,7 +154,7 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 		}
 
 		// populate the vertex buffer via the mapping
-		memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+		memcpy(pVertexDataBegin, &vertexInput[0], vertexBufferSize);
 
 		// remove the mapping as the copy has taken place
 		m_geomatry.m_vertexBuffer->Unmap(0, nullptr);

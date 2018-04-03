@@ -21,6 +21,7 @@
 
 #include "Geomatry.h"
 
+
 class ApplicationCore
 {
 public:
