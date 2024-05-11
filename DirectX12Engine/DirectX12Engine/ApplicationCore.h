@@ -49,9 +49,7 @@ private:
 	Win32Window * m_windowPtr;
 	Dx12Renderer * m_rendererPtr;
 
-	Geomatry m_geomatry;
-
-	float m_aspectRatio;
+	Geometry m_geomatry;
 };
 
 #endif

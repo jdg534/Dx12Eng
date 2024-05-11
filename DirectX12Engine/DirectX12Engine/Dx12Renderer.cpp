@@ -5,7 +5,10 @@
 Dx12Renderer::Dx12Renderer(const UINT width, const UINT height)
 	: m_width(width)
 	, m_height(height)
+	, m_aspectRatio(static_cast<float>(width) / static_cast<float>(height))
 	, m_useWarpDevice(false)
+	, m_fenceEvent(nullptr)
+	, m_fenceValue(0)
 	, m_dxDeviceAdapter(nullptr)
 	, m_dx12RootSig(nullptr)
 	, m_dx12Device(nullptr)
@@ -15,8 +18,9 @@ Dx12Renderer::Dx12Renderer(const UINT width, const UINT height)
 	, m_dx12CmdAllocator(nullptr)
 	, m_pipelineState(nullptr)
 	, m_commandList(nullptr)
+	, m_frameIndex(0)
 	, m_fence(nullptr)
-
+	, m_rtvDescriptorSize(0)
 {
 	m_renderTargets[0] = nullptr;
 	m_renderTargets[1] = nullptr;
@@ -434,7 +438,7 @@ void Dx12Renderer::createInitialDrawingCommands()
 	m_commandList->ClearRenderTargetView(rtvHandle, clearClr, 0, nullptr);
 }
 
-void Dx12Renderer::appendDrawingCommands(const Geomatry & toDraw)
+void Dx12Renderer::appendDrawingCommands(const Geometry & toDraw)
 {
 	// append stuff to the command list
 	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // this could likely be moved to createInitialDrawingCommands

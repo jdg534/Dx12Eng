@@ -28,10 +28,11 @@ public:
 	void waitForLastFrame(); // refactor once found a cleaner way
 	
 	void createInitialDrawingCommands();
-	void appendDrawingCommands(const Geomatry & toDraw);
+	void appendDrawingCommands(const Geometry & toDraw);
 	void finishDrawing();
 
 private:
+
 	// Dx12 structs
 	Microsoft::WRL::ComPtr<IDXGIAdapter> m_dxDeviceAdapter;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_dx12RootSig;

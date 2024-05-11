@@ -71,8 +71,6 @@ HRESULT ApplicationCore::init(HINSTANCE hInst, int nCmdValues, const std::string
 		return E_FAIL;
 	}
 
-	m_aspectRatio = 800.0f / 600.0f;
-	
 	// populate the vertex buffer, (deal with the geomatry struct)
 
 	{
