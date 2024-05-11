@@ -33,10 +33,19 @@ public:
 
 private:
 
+	HRESULT initCreateDevice(const HWND windowHandle);
+	HRESULT initCreateCommandQueue();
+	HRESULT initCreateSwapChain(const HWND windowHandle);
+	HRESULT initRenderTargets(const HWND windowHandle);
+	HRESULT initPipelineAndCommandList();
+	// todo, create seperate psos and command lists for different drawing techniques, e.g. skinned meshes.
+	HRESULT initSynchronisation();
+
 	// Dx12 structs
 	Microsoft::WRL::ComPtr<IDXGIAdapter> m_dxDeviceAdapter;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_dx12RootSig;
 	Microsoft::WRL::ComPtr<ID3D12Device> m_dx12Device;
+	Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_dx12CommandQueue;
 	Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_renderTargetviewDescHeap;

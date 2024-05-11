@@ -28,12 +28,9 @@ public:
 	ApplicationCore();
 	~ApplicationCore();
 
-
 	HRESULT init(HINSTANCE hInst, int nCmdValues, const std::string & indexFile);
 	int run();
 	void shutdown();
-	
-	
 
 private:
 
@@ -42,12 +39,11 @@ private:
 	void populateDxCmdList();
 
 
-	std::chrono::steady_clock::time_point m_timeAtStartOfTheFrame,
-		m_timeAtEndOfTheFrame;
-	float m_deltaTimeForFrame;
+	std::chrono::steady_clock::time_point m_timeAtStartOfTheFrame, m_timeAtEndOfTheFrame;
+	float m_deltaTimeForFrame {0.0f};
 
-	Win32Window * m_windowPtr;
-	Dx12Renderer * m_rendererPtr;
+	Win32Window* m_windowPtr;
+	Dx12Renderer* m_rendererPtr;
 
 	Geometry m_geomatry;
 };
