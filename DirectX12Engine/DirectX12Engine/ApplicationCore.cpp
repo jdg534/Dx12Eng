@@ -12,6 +12,7 @@
 #include <assimp/postprocess.h>     // Post processing flags
 
 #include <vector>
+#include <cmath>
 
 LRESULT CALLBACK WindowCallBackFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -193,8 +194,17 @@ int ApplicationCore::run()
 		}
 		else
 		{
-			update();
+			using namespace std::chrono;
+			m_timeAtStartOfTheFrame = steady_clock::now();
+			update(m_deltaTimeForFrame);
 			draw();
+			m_timeAtEndOfTheFrame = steady_clock::now();
+			const auto diff = duration_cast<milliseconds>(m_timeAtEndOfTheFrame - m_timeAtStartOfTheFrame);
+			m_deltaTimeForFrame =  static_cast<float>(diff.count()) / 1000.0f;
+			if (m_deltaTimeForFrame <= 0.0f)
+			{
+				m_deltaTimeForFrame = FLT_MIN; // change to std::numeric_limits<float>::min, kept getting win32 header from intelisense.
+			}
 		}
 	}
 
@@ -213,9 +223,9 @@ void ApplicationCore::shutdown()
 	delete m_windowPtr;
 }
 
-void ApplicationCore::update()
+void ApplicationCore::update(float deltaTime)
 {
-
+	// tick update things to draw
 }
 
 void ApplicationCore::draw()

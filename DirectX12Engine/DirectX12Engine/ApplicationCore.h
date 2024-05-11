@@ -34,10 +34,9 @@ public:
 
 private:
 
-	void update();
+	void update(float deltaTime);
 	void draw();
 	void populateDxCmdList();
-
 
 	std::chrono::steady_clock::time_point m_timeAtStartOfTheFrame, m_timeAtEndOfTheFrame;
 	float m_deltaTimeForFrame {0.0f};
